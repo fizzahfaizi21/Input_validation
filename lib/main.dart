@@ -18,6 +18,10 @@ class MyApp extends StatelessWidget {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
           ),
+          errorStyle: TextStyle(
+            color: Colors.red[700],
+            fontSize: 12,
+          ),
         ),
       ),
       home: Scaffold(
@@ -45,6 +49,7 @@ class MyCustomFormState extends State<MyCustomForm> {
   final TextEditingController _passwordController = TextEditingController();
 
   bool _isPasswordVisible = false;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -53,6 +58,53 @@ class MyCustomFormState extends State<MyCustomForm> {
     _dobController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) {
+      return; // Validation failed
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    // Simulate API call delay
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (mounted) {
+      setState(() {
+        _isSubmitting = false;
+      });
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Signup successful! Redirecting...'),
+          backgroundColor: Colors.green[700],
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      // Clear form
+      _formKey.currentState!.reset();
+      _nameController.clear();
+      _emailController.clear();
+      _dobController.clear();
+      _passwordController.clear();
+
+      // Navigate to home screen after delay
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const SuccessScreen(),
+            ),
+          );
+        }
+      });
+    }
   }
 
   @override
@@ -72,13 +124,14 @@ class MyCustomFormState extends State<MyCustomForm> {
             ),
             const SizedBox(height: 30),
 
-            // Name Field with Enhanced Validation
+            // Name Field
             TextFormField(
               controller: _nameController,
               decoration: const InputDecoration(
                 labelText: 'Full Name',
                 prefixIcon: Icon(Icons.person),
                 border: OutlineInputBorder(),
+                errorMaxLines: 2,
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -96,13 +149,14 @@ class MyCustomFormState extends State<MyCustomForm> {
 
             const SizedBox(height: 20),
 
-            // Email Field with Detailed Validation
+            // Email Field
             TextFormField(
               controller: _emailController,
               decoration: const InputDecoration(
                 labelText: 'Email Address',
                 prefixIcon: Icon(Icons.email),
                 border: OutlineInputBorder(),
+                errorMaxLines: 2,
               ),
               keyboardType: TextInputType.emailAddress,
               validator: (value) {
@@ -111,7 +165,7 @@ class MyCustomFormState extends State<MyCustomForm> {
                 }
                 final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
                 if (!emailRegex.hasMatch(value)) {
-                  return 'Please enter a valid email address';
+                  return 'Please enter a valid email address (e.g., user@example.com)';
                 }
                 return null;
               },
@@ -119,13 +173,14 @@ class MyCustomFormState extends State<MyCustomForm> {
 
             const SizedBox(height: 20),
 
-            // Date of Birth with Age Restriction
+            // Date of Birth Field
             TextFormField(
               controller: _dobController,
               decoration: const InputDecoration(
                 labelText: 'Date of Birth',
                 prefixIcon: Icon(Icons.calendar_today),
                 border: OutlineInputBorder(),
+                errorMaxLines: 2,
               ),
               readOnly: true,
               onTap: () async {
@@ -146,10 +201,14 @@ class MyCustomFormState extends State<MyCustomForm> {
                 if (value == null || value.isEmpty) {
                   return 'Please select your date of birth';
                 }
-                DateTime dob = DateFormat('dd/MM/yyyy').parse(value);
-                int age = DateTime.now().year - dob.year;
-                if (age < 13) {
-                  return 'You must be at least 13 years old';
+                try {
+                  DateTime dob = DateFormat('dd/MM/yyyy').parse(value);
+                  int age = DateTime.now().year - dob.year;
+                  if (age < 13) {
+                    return 'You must be at least 13 years old';
+                  }
+                } catch (e) {
+                  return 'Invalid date format';
                 }
                 return null;
               },
@@ -157,13 +216,14 @@ class MyCustomFormState extends State<MyCustomForm> {
 
             const SizedBox(height: 20),
 
-            // Password Field with Advanced Complexity Check
+            // Password Field (Fixed Validation)
             TextFormField(
               controller: _passwordController,
               decoration: InputDecoration(
                 labelText: 'Password',
                 prefixIcon: const Icon(Icons.lock),
                 border: const OutlineInputBorder(),
+                errorMaxLines: 3,
                 suffixIcon: IconButton(
                   icon: Icon(_isPasswordVisible
                       ? Icons.visibility
@@ -183,12 +243,28 @@ class MyCustomFormState extends State<MyCustomForm> {
                 if (value.length < 8) {
                   return 'Password must be at least 8 characters';
                 }
-                final complexityRegex = RegExp(
-                    r'^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[!@#\$&*~]).{8,}$');
-                if (!complexityRegex.hasMatch(value)) {
-                  return 'Password must include uppercase, lowercase, number, and special character';
+                
+                // Improved validation checks
+                final hasUppercase = value.contains(RegExp(r'[A-Z]'));
+                final hasLowercase = value.contains(RegExp(r'[a-z]'));
+                final hasNumber = value.contains(RegExp(r'[0-9]'));
+                final hasSpecialChar = value.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+
+                String errorMessage = '';
+                if (!hasUppercase) errorMessage += '• Uppercase letter\n';
+                if (!hasLowercase) errorMessage += '• Lowercase letter\n';
+                if (!hasNumber) errorMessage += '• Number\n';
+                if (!hasSpecialChar) errorMessage += '• Special character\n';
+
+                if (errorMessage.isNotEmpty) {
+                  return 'Password must contain:\n$errorMessage';
                 }
                 return null;
+              },
+              onChanged: (value) {
+                if (_formKey.currentState != null) {
+                  _formKey.currentState!.validate();
+                }
               },
             ),
 
@@ -201,29 +277,17 @@ class MyCustomFormState extends State<MyCustomForm> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
+                backgroundColor: _isSubmitting ? Colors.grey : null,
               ),
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  // Form is valid, proceed with signup
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Signup Successful!'),
-                      backgroundColor: Colors.green,
-                      duration: Duration(seconds: 2),
+              onPressed: _isSubmitting ? null : _submitForm,
+              child: _isSubmitting
+                  ? const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation(Colors.white),
+                    )
+                  : const Text(
+                      'SIGN UP',
+                      style: TextStyle(fontSize: 18),
                     ),
-                  );
-
-                  // Here you would typically send data to your backend
-                  print('Name: ${_nameController.text}');
-                  print('Email: ${_emailController.text}');
-                  print('DOB: ${_dobController.text}');
-                  // Note: Never print passwords in production!
-                }
-              },
-              child: const Text(
-                'SIGN UP',
-                style: TextStyle(fontSize: 18),
-              ),
             ),
 
             const SizedBox(height: 20),
@@ -231,9 +295,45 @@ class MyCustomFormState extends State<MyCustomForm> {
             // Already have an account? Login
             TextButton(
               onPressed: () {
-                // Navigate to login page
+                if (!_isSubmitting) {
+                  // Navigate to login page
+                }
               },
               child: const Text('Already have an account? Log in'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SuccessScreen extends StatelessWidget {
+  const SuccessScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Welcome'),
+        automaticallyImplyLeading: false,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.check_circle, size: 100, color: Colors.green),
+            const SizedBox(height: 20),
+            const Text(
+              'Account Created Successfully!',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Back to Home'),
             ),
           ],
         ),
