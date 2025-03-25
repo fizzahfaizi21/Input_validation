@@ -93,17 +93,11 @@ class MyCustomFormState extends State<MyCustomForm> {
       _dobController.clear();
       _passwordController.clear();
 
-      // Navigate to home screen after delay
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const SuccessScreen(),
-            ),
-          );
-        }
-      });
+      // Navigate to Home screen using pushReplacement to prevent going back to signup
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
     }
   }
 
@@ -243,12 +237,13 @@ class MyCustomFormState extends State<MyCustomForm> {
                 if (value.length < 8) {
                   return 'Password must be at least 8 characters';
                 }
-                
+
                 // Improved validation checks
                 final hasUppercase = value.contains(RegExp(r'[A-Z]'));
                 final hasLowercase = value.contains(RegExp(r'[a-z]'));
                 final hasNumber = value.contains(RegExp(r'[0-9]'));
-                final hasSpecialChar = value.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+                final hasSpecialChar =
+                    value.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
 
                 String errorMessage = '';
                 if (!hasUppercase) errorMessage += '• Uppercase letter\n';
@@ -294,11 +289,15 @@ class MyCustomFormState extends State<MyCustomForm> {
 
             // Already have an account? Login
             TextButton(
-              onPressed: () {
-                if (!_isSubmitting) {
-                  // Navigate to login page
-                }
-              },
+              onPressed: _isSubmitting
+                  ? null
+                  : () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const LoginScreen()),
+                      );
+                    },
               child: const Text('Already have an account? Log in'),
             ),
           ],
@@ -308,33 +307,145 @@ class MyCustomFormState extends State<MyCustomForm> {
   }
 }
 
-class SuccessScreen extends StatelessWidget {
-  const SuccessScreen({super.key});
+// Login Screen
+class LoginScreen extends StatelessWidget {
+  const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Welcome'),
-        automaticallyImplyLeading: false,
+        title: const Text('Login'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Welcome Back',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 30),
+            TextFormField(
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.email),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextFormField(
+              decoration: const InputDecoration(
+                labelText: 'Password',
+                prefixIcon: Icon(Icons.lock),
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 30),
+            ElevatedButton(
+              onPressed: () {
+                // Implement login logic
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HomeScreen()),
+                );
+              },
+              child: const Text('LOGIN'),
+            ),
+            const SizedBox(height: 20),
+            TextButton(
+              onPressed: () {
+                // Navigate back to signup
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MyCustomForm()),
+                );
+              },
+              child: const Text('Don\'t have an account? Sign up'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Home Screen
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Home'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              // Navigate back to login screen and remove all previous routes
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                (route) => false,
+              );
+            },
+          ),
+        ],
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.check_circle, size: 100, color: Colors.green),
-            const SizedBox(height: 20),
             const Text(
-              'Account Created Successfully!',
+              'Welcome to the App!',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(context);
+                // Example of navigating to another screen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const ProfileScreen()),
+                );
               },
-              child: const Text('Back to Home'),
+              child: const Text('View Profile'),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Profile Screen
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Profile'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            CircleAvatar(
+              radius: 50,
+              child: Icon(Icons.person, size: 50),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'User Profile',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            // Add more profile details here
           ],
         ),
       ),
